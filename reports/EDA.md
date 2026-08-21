@@ -10,8 +10,10 @@ Báo cáo này tìm hiểu các yếu tố ảnh hưởng đến khả năng s�
  
 ### Các phát hiện chính:
 
-todo
-
+- Giới tính thể hiện rõ nhất sự sống sót (~74% phụ nữ sống sót so với ~18% của nam.)
+- Càng nhiều thành viên gia đình => Càng ít cơ hội sống sót.  
+- Những người trẻ sống sót nhiều hơn người già.
+- Danh cấp cũng là một dấu hiệu lớn thể hiện sự sống sót.
 ## 1. Sơ lược về dữ liệu
  
 Tập train gồm **891 dòng** và **12 cột**: 1 biến mục tiêu (`Survived`), 10 biến đặc trưng, và 1 mã định danh hành khách.
@@ -34,3 +36,31 @@ Tập train gồm **891 dòng** và **12 cột**: 1 biến mục tiêu (`Survive
 | `Embarked` | Chữ | Cảng lên tàu | C, Q, hoặc S |
  
 
+## 2. Sử lý dữ liệu thiếu
+train.csv:
+| Cột | Số thiếu | Cách giải quyết |
+| :--- | :--- | :--- |
+| `Age` | 177 | Lấy trung vị của `Age`, tách bằng danh hiệu tên để chính xác hơn. |
+| `Cabin` | 687 | Không sử dụng dữ liệu nên không cần làm gì. |
+| `Embarked` | 2 | Không sử dụng dữ liệu nên không cần làm gì. |
+
+test.csv:
+| Cột | Số thiếu | Cách giải quyết |
+| :--- | :--- | :--- |
+| `Age` | 86 | Lấy trung vị của tuổi từ dữ liệu của train. |
+| `Cabin` | 327 | Không sử dụng dữ liệu nên không cần làm gì. |
+| `Fare` | 1 | Không sử dụng dữ liệu nên không cần làm gì. |
+
+### Vì sao một số dữ liệu không sử dụng?
+Các dữ liệu như `Cabin`, `Fare`, `Embarked` đều là về danh cấp. Chỉ cần sử dụng đến `Pclass` vì
+1. `Pclass` là định danh trực tiếp.
+2. Cả 3 cột này đều được gắn liền với `Pclass`, nếu sử dụng cả 3 sẽ dễ bị nhiễu thông tin.
+
+## 3. Đề xuất sửa dữ liệu
+Để dữ liệu đầu vào sạch và dễ hiểu cho model, có một số kỹ thuật có thể thực hiện:
+- **Tách danh hiệu tên thành cột `Title` riêng** vì danh hiệu có thể là dấu hiệu của độ tuổi và danh cấp.
+
+## 4. Triển khai model
+Vì dữ liệu đơn giản và không liên tục, nên **Tree-based models** (RandomForest, XGBoost, ...) sẽ là hợp lý nhất cho chủ đề này.
+- sử dụng **One-hot Encoding** cho các cột `Age`, `Sex`, `SibSp`, `Parch`
+- cột `Pclass` cho thẳng vào ma trận, không cần encode vì đã mang tính chất ordinal.
