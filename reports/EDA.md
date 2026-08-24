@@ -2,6 +2,7 @@
 *Đề tài: Kaggle: Titanic - Machine Learning from Disaster*
 
 **Dữ liệu:** danh sách hành khách Titanic (`train.csv` / `test.csv`)
+
 **Biến mục tiêu:** `Survived` (0 = không sống sót, 1 = sống sót)
  
 ## Tóm tắt tổng quan
