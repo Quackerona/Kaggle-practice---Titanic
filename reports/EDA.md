@@ -55,6 +55,7 @@ test.csv:
 
 ## 3. Test xem biến nào thực sự quan trọng
 
+Nhìn biểu đồ groupby chỉ thấy "có vẻ" khác nhau thôi, chưa chắc là thật hay chỉ do ngẫu nhiên vì mẫu ít. Nên mình chạy thêm test thống kê: biến phân loại thì dùng **chi-square test**, biến số thì dùng **t-test**.
 
 **Biến phân loại (chi-square), xếp từ mạnh xuống yếu:**
 
@@ -76,20 +77,21 @@ test.csv:
 | `Fare` | 48.40 | 22.12 | < 0.000001 |
 | `Age` | 28.34 | 30.63 | 0.041 |
 
-Tất cả đều có p-value < 0.05 nên đều quan trọng, không phải ngẫu nhiên. Vài điều cần lưu ý:
+Tất cả đều có p-value < 0.05 nên đều "thật", không phải ngẫu nhiên. Vài điều cần lưu ý:
 
 - `Age` có p-value = 0.041, gần sát ngưỡng 0.05 nhất trong hết. Nên đây là biến yếu nhất trong danh sách này.
 - `Deck` có nhóm `T` chỉ 1 người thôi. Kết quả chung vẫn ổn nhờ mấy nhóm khác đủ lớn, nhưng riêng nhóm `T` thì không nên tin quá.
 - Gộp `SibSp` với `Parch` thành `FamilySize` thấy hợp lý hơn, vì `FamilySize` có chi-square cao hơn 2 cái kia cộng lại.
-- Mấy con số này chỉ nói lên là "biến đó có liên quan", chưa nói được là model sẽ dùng nó nhiều hay ít.Sau khi train model rồi xem `feature_importance` mới biết chắc.
+- Mấy con số này chỉ nói lên là "biến đó có liên quan", chưa nói được là model sẽ dùng nó nhiều hay ít. Cái đó phải để sau khi train model rồi xem `feature_importance` mới biết chắc.
 
 ## 4. Chọn feature nào để dùng
 
-Có ý nghĩa thống kê không có nghĩa là nên nhét hết vào model vì sẽ trùng thông tin. Để biết 2 biến có trùng nhau không, dùng:
+Có ý nghĩa thống kê không có nghĩa là nên nhét hết vào model, vì nhiều biến đang đo cùng một thứ (bị trùng lặp thông tin, hay còn gọi là multicollinearity). Để biết 2 biến có trùng nhau không, dùng:
 
-- **Cramér's V**: dùng khi cả 2 biến đều là loại categorical, ví dụ `Pclass` với `Deck`.
-- **Correlation ratio**: dùng khi 1 biến là categorical, 1 biến là số, ví dụ `Pclass` với `Fare`.
+- **Cramér's V**: dùng khi cả 2 biến đều là loại chữ/nhóm (categorical), ví dụ `Pclass` với `Deck`.
+- **Correlation ratio**: dùng khi 1 biến là nhóm, 1 biến là số, ví dụ `Pclass` với `Fare`.
 
+Không dùng Pearson correlation bình thường được vì `Deck` hay `Title` là chữ, không có thứ tự số học, quy về số (A=1, B=2...) rồi tính là sai.
 
 Giá trị càng gần 1 là càng trùng nhau, càng gần 0 là càng độc lập.
 
@@ -111,37 +113,61 @@ Cả 3 chỉ ở mức trung bình (~0.58-0.60), không quá cao, nên 3 biến 
 | Correlation ratio (`Title` vs `Age`) | 0.573 |
 | Correlation ratio (`Sex` vs `Age`) | 0.105 |
 
-`Sex` và `Title` gần như trùng hoàn toàn (0.998) vì `Title` (Mr/Mrs/Miss/Master) gần như nói lên luôn giới tính rồi. Cho cả 2 vào model là dư. Vì `Title` còn có thêm thông tin (ví dụ "Master" là bé trai, tách biệt với đàn ông trưởng thành, còn `Sex` thì không phân biệt được), nên giữ `Title`, bỏ `Sex`.
+`Sex` và `Title` gần như trùng hoàn toàn (0.998) vì `Title` (Mr/Mrs/Miss/Master) gần như nói lên luôn giới tính rồi. Cho cả 2 vào model là dư. Vì `Title` còn có thêm thông tin (ví dụ "Master" là bé trai, tách biệt với đàn ông trưởng thành, còn `Sex` thì không phân biệt được), nên **giữ `Title`, bỏ `Sex`**.
 
-### Tóm lại nên chọn feature nào
+### Tóm lại nên chọn feature nào (trước khi train thử)
 
 - Nhóm gia đình: dùng `FamilySize`, bỏ `SibSp`/`Parch` riêng lẻ.
 - Nhóm giới tính/tuổi: dùng `Title` (đã có gần hết thông tin của `Sex` rồi), giữ `Age` riêng vì không trùng nhiều với `Title`.
 - Nhóm tiền/hạng vé: giữ cả `Pclass`, `Fare`, `Deck` vì không trùng nhau nhiều.
-- Cuối cùng vẫn nên đưa hết mấy feature còn lại (`Title`, `Age`, `FamilySize`, `Pclass`, `Fare`, `Deck`, `Embarked`) vào train thử, rồi xem `feature_importance` để cắt bớt cái nào đóng góp ít.
-## 5. Đề xuất sửa dữ liệu
+- Cuối cùng vẫn nên đưa hết mấy feature còn lại (`Title`, `Age`, `FamilySize`, `Pclass`, `Fare`, `Deck`, `Embarked`) vào train thử, rồi xem `feature_importance` để cắt bớt cái nào đóng góp ít. Đây mới là cách chắc chắn nhất vì nó đo thật, không phải chỉ đoán qua tương quan.
+
+> Lưu ý: đây là kết luận dựa trên tương quan trước khi train model. Sau khi train thử và xem SHAP (mục 5), quyết định về `SibSp`/`Parch` đã thay đổi.
+
+## 5. Kết quả sau khi train thử (SHAP)
+
+Sau khi đưa hết feature vào RandomForest và xem SHAP value, có vài điều khác với dự đoán ban đầu:
+
+- **`Title` không cần giữ hết các nhóm**: chỉ có `Mr`, `Miss`, `Mrs` là có SHAP đáng kể, mấy title còn lại (`Master`, `Dr`, `Rev`,...) gần như 0. Gộp hết mấy cái yếu vào `Other` giúp tăng accuracy score.
+- **Bất ngờ nhất**: `Master` (bé trai) tưởng sẽ quan trọng lắm (vì chi-square của `Title` cao nhất phần lớn là nhờ `Master` tách biệt được trẻ em), nhưng SHAP lại gần 0. Khả năng cao là vì `Age` đã tự cover phần đó rồi — trẻ em thì `Age` thấp, model không cần thêm `Master` để biết ai là trẻ em nữa. Đây là ví dụ dữ liệu có ý nghĩa thống kê (p-value) không có nghĩa là model sẽ thực sự dùng tới nó khi có biến khác đã "gánh" hết thông tin đó rồi.
+- **`Deck` cũng chỉ cần vài nhóm**: `U` (không có cabin) và `E` có SHAP rõ, còn lại gộp vào `Other` cũng giúp cải thiện kết quả.
+- **`SibSp`/`Parch` vẫn giữ riêng thay vì chỉ dùng `FamilySize`**: SHAP cho thấy 2 biến này vẫn mang thêm thông tin ngoài `FamilySize` (có thể là do hướng đi cùng ai — cha mẹ hay anh chị em — có ảnh hưởng khác nhau tới sống sót, dù `FamilySize` không phân biệt được điều này). Nên quyết định cuối cùng là **giữ cả `FamilySize` lẫn `SibSp`/`Parch`**, khác với đề xuất ban đầu ở mục 4.
+
+Kết quả: accuracy 0.836 trên train, 0.78 trên submission (Kaggle). Chênh lệch ~5.6% là bình thường cho bộ dữ liệu này, không phải dấu hiệu overfit nặng.
+
+**Feature cuối cùng dùng cho model:**
+
+- `Title` (gộp còn `Mr`, `Miss`, `Mrs`, `Other`)
+- `Deck` (gộp còn `U`, `E`, `Other`)
+- `FamilySize`, `SibSp`, `Parch` (giữ cả 3)
+- `Pclass`, `Fare`, `Age`, `Embarked` (giữ nguyên)
+
+## 6. Đề xuất sửa dữ liệu
 
 Để dữ liệu đầu vào sạch và dễ hiểu cho model, có một số kỹ thuật có thể thực hiện:
 
-- **Tách danh hiệu tên thành cột `Title` riêng** vì danh hiệu có thể là dấu hiệu của độ tuổi và danh cấp.
-- **Tạo cột `Deck`** bằng cách lấy chữ cái đầu của `Cabin`, dòng thiếu thì cho là "U".
-- **Tạo cột `FamilySize` = `SibSp` + `Parch` + 1** để gộp lại thành 1 biến duy nhất, dễ nhìn hơn để riêng.
+- **Tách danh hiệu tên thành cột `Title` riêng**, gộp các title hiếm lại thành `Other` (dựa trên SHAP, xem mục 5).
+- **Tạo cột `Deck`** bằng cách lấy chữ cái đầu của `Cabin`, dòng thiếu thì cho là "U", gộp các deck ít giá trị lại thành `Other`.
+- **Tạo cột `FamilySize` = `SibSp` + `Parch` + 1**, nhưng vẫn giữ `SibSp`/`Parch` riêng vì SHAP cho thấy chúng còn mang thêm thông tin.
+- **Giữ lại `Fare` và `Embarked`** sau khi điền dữ liệu thiếu, không bỏ ngay từ đầu.
+- **Không cho `Sex` vào model chung với `Title`** vì 2 cái trùng nhau gần hết (Cramér's V = 0.998).
 
-## 6. Kết luận rút ra từ EDA
+## 7. Kết luận rút ra từ EDA
 
 Từ mấy cái ở trên, rút ra được vài điều cho bước xử lý dữ liệu và chọn model:
 
-- **Giới tính và danh hiệu tên là 2 yếu tố mạnh nhất**: `Title` (chi2 = 300.02) và `Sex` (chi2 = 260.72) đứng đầu, cao hơn hẳn mấy cái còn lại. `Title` gộp luôn giới tính, tuổi, và đôi khi cả địa vị xã hội (`Master`, `Lady`, `Sir`,...) vào 1 biến, nên tách `Title` ra là bước quan trọng.
-- **Gộp `SibSp` với `Parch` thành `FamilySize` là đúng**: `FamilySize` (chi2 = 80.67) mạnh hơn cả 2 cái gốc, nên gộp lại hợp lý hơn để riêng.
+- **Giới tính và danh hiệu tên là 2 yếu tố mạnh nhất theo test thống kê**: `Title` (chi2 = 300.02) và `Sex` (chi2 = 260.72) đứng đầu, cao hơn hẳn mấy cái còn lại.
+- **Nhưng SHAP cho thấy không phải toàn bộ `Title` đều quan trọng**: chỉ `Mr`, `Miss`, `Mrs` là có giá trị thực sự khi train model, `Master` và mấy title hiếm khác gần như 0, có thể vì `Age` đã cover phần đó rồi. Đây là bài học quan trọng: p-value chỉ nói lên "có liên quan", không nói lên "model sẽ dùng nó nhiều hay ít".
+- **`SibSp`/`Parch` vẫn nên giữ riêng, không chỉ dùng `FamilySize`**: dù `FamilySize` có chi-square cao hơn (80.67), SHAP cho thấy 2 biến gốc vẫn mang thêm thông tin khi train chung. Kết luận ban đầu ở mục 4 (chỉ dùng `FamilySize`) bị đảo ngược sau khi có bằng chứng thực tế từ model.
 - **Mấy biến còn lại đều có ý nghĩa nhưng không đều nhau**: `Pclass`, `Deck`, `Embarked`, `Fare` đều p < 0.05, riêng `Age` thì p = 0.041, gần sát ngưỡng nên là biến yếu nhất.
-- **p-value chỉ nói được là biến có liên quan thôi**: chưa nói được nó sẽ đóng góp nhiều hay ít khi train chung với mấy biến khác. Bước sau nên thử train rồi xem `feature_importance` để biết chắc.
-- **`Sex` và `Title` trùng nhau gần hết**: Cramér's V = 0.998, nên chỉ cần giữ `Title` thôi (xem mục 4).
+- **`Sex` và `Title` trùng nhau gần hết**: Cramér's V = 0.998, nên chỉ cần giữ `Title` thôi.
 
-## 7. Triển khai model
+## 8. Triển khai model
 
 Vì dữ liệu đơn giản và không liên tục, nên **Tree-based models** (RandomForest, XGBoost, ...) sẽ là hợp lý nhất cho chủ đề này.
 
-- sử dụng **One-hot Encoding** cho các cột `Embarked`, `Title`, `Deck`
+- sử dụng **One-hot Encoding** cho các cột `Embarked`, `Title` (gộp còn `Mr`/`Miss`/`Mrs`/`Other`), `Deck` (gộp còn `U`/`E`/`Other`)
 - cột `Pclass` cho thẳng vào ma trận, không cần encode vì đã mang tính chất ordinal.
-- không cho `Sex` vào chung với `Title` để tránh dư thừa (xem mục 4).
-- sau khi train xong, xem `feature_importance` để check lại xem `Fare`, `Deck`, `Embarked` có thực sự đóng góp không, thay vì tự quyết định trước.
+- không cho `Sex` vào chung với `Title` để tránh dư thừa.
+- giữ cả `FamilySize`, `SibSp`, `Parch` vì SHAP cho thấy cả 3 đều đóng góp.
+- kết quả: accuracy 0.836 (train), 0.78 (submission Kaggle) với RandomForest đã tune bằng Optuna.
